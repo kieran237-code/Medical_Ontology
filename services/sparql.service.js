@@ -1,5 +1,7 @@
 const fetch = require('node-fetch');
 const { QUERY_ENDPOINT, UPDATE_ENDPOINT, PREFIXES } = require('../config/sparql');
+
+// Executer les requetes SPARQL de type SELECT et retourner
 /**
  * @param{string} query 
  */
@@ -28,6 +30,30 @@ async function runSelectQuery(query) {
     });
 }
 
+
+// Executer les requetes SPARQL de type UPDATE (INSERT, DELETE, etc)
+/**
+ * @param{string} updateQuery
+ */
+
+async function runUpdateQuery(updateQuery) {
+    const fullQuery = PREFIXES + updateQuery;
+    const response = await fetch(UPDATE_ENDPOINT, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/sparql-update'
+        },
+        body: fullQuery
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`SPARQL update failed with status ${response.status}: ${errorText}`);
+    }       
+}
+
+
 module.exports = {
-    runSelectQuery
+    runSelectQuery ,
+    runUpdateQuery
 };  

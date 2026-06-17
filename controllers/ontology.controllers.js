@@ -13,13 +13,12 @@ async function recommendedFoods(req, res) {
     }
     try{
         //Requete 1 : Aliments qui previennent cette maladie
-        const recommendQuery = `
+        let recommendQuery = `
             SELECT ?food ?label ?glycemicIndex WHERE {
                 ?food hlt:preventsDisease hlt:${disease} .
                 ?food rdfs:label ?label .
                 FILTER (lang(?label) = "fr") .
                 OPTIONAL { ?food hlt:glycemicIndex ?glycemicIndex . }
-            }
         `;
         if(region){
             recommendQuery += `
@@ -28,7 +27,7 @@ async function recommendedFoods(req, res) {
                 FILTER (CONTAINS(?regLabel, "${region}")) 
             `;
         }
-        recommendQuery += `} ORDER BY ?glycemicIndex`;
+        recommendQuery += `}`;
         
         const recommendedFoods = await runSelectQuery(recommendQuery);
 
@@ -42,7 +41,8 @@ async function recommendedFoods(req, res) {
         `;
         const toAvoidFoods = await runSelectQuery(avoidQuery);
 
-        res.json({diseases,
+        res.json({
+            disease,
             region: region || "toutes regions",
             recommended_foods: recommendedFoods,
             to_avoid_foods: toAvoidFoods
