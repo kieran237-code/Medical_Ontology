@@ -52,8 +52,36 @@ async function runUpdateQuery(updateQuery) {
     }       
 }
 
+// Verifier si une ressource existe déjà, sinon la créer (ex: région ou maladie)
+/**
 
-module.exports = {
-    runSelectQuery ,
-    runUpdateQuery
-};  
+ * @param {string} id - l'identifiant RDF (ex: "Littoral")
+ * @param {string} classType - la classe parente (ex: "Region" ou "Disease")
+ */
+async function ensureResourceExists(id, classType) {
+  const checkQuery = `
+    SELECT ?label WHERE {
+      hlt:${id} rdfs:label ?label .
+    } LIMIT 1
+  `;
+
+  const existing = await runSelectQuery(checkQuery);
+
+  if (existing.length > 0) {
+    return { created: false, label: existing[0].label };
+  }
+
+  // N'existe pas encore : on la crée avec un label = id (lisible)
+  const insertQuery = `
+    INSERT DATA {
+      hlt:${id} rdf:type hlt:${classType} .
+      hlt:${id} rdfs:label "${id}"@fr .
+    }
+  `;
+  await runUpdateQuery(insertQuery);
+
+  return { created: true, label: id };
+}
+
+
+module.exports = { runSelectQuery, runUpdateQuery, ensureResourceExists };
