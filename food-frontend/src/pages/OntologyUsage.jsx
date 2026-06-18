@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Send, Stethoscope, Apple } from 'lucide-react'
+import { Send, Stethoscope, Apple, PlusCircle } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { getRecommendations, getFoodRisks } from '../services/api'
 import { formatRecommendation, formatRisks } from '../services/formatResults'
 import ResultTerminal from '../components/ResultTerminal'
@@ -148,8 +149,20 @@ function OntologyUsage() {
           <ResultTerminal loading={foodLoading} content={foodResult} />
         </div>
       )}
+       {/* ---- Bouton vers le formulaire d'ajout ---- */}
+      <div className="mt-12 text-center border-t border-base-300 pt-8">
+        <p className="text-sm text-base-content/70 mb-3">
+          Vous connaissez un aliment qui n'est pas encore référencé ?
+        </p>
+        <Link to="/ajouter" className="btn btn-outline btn-primary gap-2">
+          <PlusCircle size={18} />
+          Ajouter des informations à l'ontologie
+        </Link>
+      </div>
 
     </div>
+
+   
   )
 }
 
