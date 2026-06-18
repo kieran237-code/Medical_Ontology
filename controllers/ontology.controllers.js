@@ -1,4 +1,4 @@
-const { runSelectQuery, runUpdateQuery , ensureResourceExists} = require('../services/sparql.service');
+const { runSelectQuery, runUpdateQuery, ensureResourceExists, getExistingFood, tripleExists } = require('../services/sparql.service');
 const { isValidRdfId, isValidNumber, escapeRdfLiteral } = require('../utils/validators');
 
 // ----------------------------------------------------------
@@ -133,8 +133,12 @@ async function createFood(req, res) {
     return res.status(400).json({ error: 'Le champ "worsens" doit être un tableau de noms de maladies valides' });
   }
 
-  try {
+try {
     const safeLabel = escapeRdfLiteral(label);
+
+    // ---- Vérifie si l'aliment existe déjà ----
+    const existingFood = await getExistingFood(id);
+    const isNewFood = !existingFood;
 
     // ---- S'assurer que la région existe (création auto si besoin) ----
     if (region) {
@@ -147,35 +151,63 @@ async function createFood(req, res) {
       await ensureResourceExists(disease, 'Disease');
     }
 
-    // ---- Construction des triplets de l'aliment lui-même ----
-    let triples = `hlt:${id} rdfs:subClassOf hlt:Food .\n`;
-    triples += `hlt:${id} rdfs:label "${safeLabel}"@fr .\n`;
+    let triples = '';
 
-    if (glycemicIndex !== undefined && glycemicIndex !== '') {
-      triples += `hlt:${id} hlt:glycemicIndex "${Number(glycemicIndex)}"^^xsd:float .\n`;
+    if (isNewFood) {
+      // ---- Nouvel aliment : on insère label + index glycémique ----
+      triples += `hlt:${id} rdfs:subClassOf hlt:Food .\n`;
+      triples += `hlt:${id} rdfs:label "${safeLabel}"@fr .\n`;
+
+      if (glycemicIndex !== undefined && glycemicIndex !== '') {
+        triples += `hlt:${id} hlt:glycemicIndex "${Number(glycemicIndex)}"^^xsd:float .\n`;
+      }
     }
+    // ---- Si l'aliment existe déjà : on NE TOUCHE PAS au label ni à l'index glycémique ----
+    // (on garde volontairement les valeurs déjà enregistrées par le premier contributeur)
 
+    // ---- Région : on l'ajoute seulement si elle n'est pas déjà liée à cet aliment ----
     if (region) {
-      triples += `hlt:${id} hlt:isConsumedIn hlt:${region} .\n`;
+      const alreadyLinked = await tripleExists(id, 'isConsumedIn', region);
+      if (!alreadyLinked) {
+        triples += `hlt:${id} hlt:isConsumedIn hlt:${region} .\n`;
+      }
     }
 
+    // ---- Maladies prévenues : on ajoute seulement les nouvelles relations ----
     if (Array.isArray(prevents)) {
-      prevents.forEach(disease => {
-        triples += `hlt:${id} hlt:preventsDisease hlt:${disease} .\n`;
-      });
+      for (const disease of prevents) {
+        const alreadyLinked = await tripleExists(id, 'preventsDisease', disease);
+        if (!alreadyLinked) {
+          triples += `hlt:${id} hlt:preventsDisease hlt:${disease} .\n`;
+        }
+      }
     }
 
+    // ---- Maladies aggravées : on ajoute seulement les nouvelles relations ----
     if (Array.isArray(worsens)) {
-      worsens.forEach(disease => {
-        triples += `hlt:${id} hlt:worsensDisease hlt:${disease} .\n`;
+      for (const disease of worsens) {
+        const alreadyLinked = await tripleExists(id, 'worsensDisease', disease);
+        if (!alreadyLinked) {
+          triples += `hlt:${id} hlt:worsensDisease hlt:${disease} .\n`;
+        }
+      }
+    }
+
+    // ---- Si aucun nouveau triplet à ajouter, on informe sans appeler Fuseki ----
+    if (triples.trim() === '') {
+      return res.status(200).json({
+        message: `Aucune nouvelle information à ajouter : "${id}" possède déjà toutes ces données`,
+        id
       });
     }
 
     const updateQuery = `INSERT DATA { ${triples} }`;
     await runUpdateQuery(updateQuery);
 
-    res.status(201).json({
-      message: `Aliment "${label}" ajouté avec succès à l'ontologie`,
+    res.status(isNewFood ? 201 : 200).json({
+      message: isNewFood
+        ? `Aliment "${label}" ajouté avec succès à l'ontologie`
+        : `Aliment "${id}" enrichi avec de nouvelles informations`,
       id
     });
   } catch (err) {

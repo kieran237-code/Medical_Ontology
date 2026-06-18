@@ -83,5 +83,36 @@ async function ensureResourceExists(id, classType) {
   return { created: true, label: id };
 }
 
+/**
+ * Vérifie si un aliment (classe Food) existe déjà dans l'ontologie.
+ * Renvoie son label et son index glycémique existants si trouvés.
+ */
+async function getExistingFood(id) {
+  const query = `
+    SELECT ?label ?glycemicIndex WHERE {
+      hlt:${id} rdfs:subClassOf hlt:Food .
+      OPTIONAL { hlt:${id} rdfs:label ?label . FILTER(lang(?label) = "fr") }
+      OPTIONAL { hlt:${id} hlt:glycemicIndex ?glycemicIndex . }
+    } LIMIT 1
+  `;
+  const results = await runSelectQuery(query);
+  return results.length > 0 ? results[0] : null;
+}
 
-module.exports = { runSelectQuery, runUpdateQuery, ensureResourceExists };
+/**
+ * Vérifie si un triplet exact existe déjà (pour éviter les doublons
+ * de relations comme preventsDisease/worsensDisease/isConsumedIn).
+ */
+async function tripleExists(subjectId, property, objectId) {
+  const query = `
+    SELECT ?s WHERE {
+      hlt:${subjectId} hlt:${property} hlt:${objectId} .
+      BIND(hlt:${subjectId} AS ?s)
+    } LIMIT 1
+  `;
+  const results = await runSelectQuery(query);
+  return results.length > 0;
+}
+
+module.exports = { runSelectQuery, runUpdateQuery, ensureResourceExists, getExistingFood, tripleExists };
+
