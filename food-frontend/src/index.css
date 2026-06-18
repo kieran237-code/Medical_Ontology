@@ -1,0 +1,46 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: foodhealth --default;
+}
+
+@plugin "daisyui/theme" {
+  name: "foodhealth";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+
+  /* Fond principal blanc, comme demandé */
+  --color-base-100: oklch(100% 0 0);
+  --color-base-200: oklch(98% 0.01 150);
+  --color-base-300: oklch(95% 0.02 150);
+  --color-base-content: oklch(20% 0.02 150);
+
+  /* Couleur primaire : vert/teal santé */
+  --color-primary: oklch(55% 0.13 162);
+  --color-primary-content: oklch(98% 0.01 162);
+
+  /* Couleur secondaire : teal plus clair */
+  --color-secondary: oklch(70% 0.12 180);
+  --color-secondary-content: oklch(20% 0.02 180);
+
+  /* Accent : un vert plus vif pour les call-to-action */
+  --color-accent: oklch(65% 0.16 145);
+  --color-accent-content: oklch(98% 0.01 145);
+
+  --color-neutral: oklch(30% 0.02 162);
+  --color-neutral-content: oklch(95% 0.01 162);
+
+  /* États (succès, erreur, etc.) */
+  --color-success: oklch(65% 0.15 145);
+  --color-success-content: oklch(98% 0.01 145);
+  --color-error: oklch(60% 0.2 25);
+  --color-error-content: oklch(98% 0.01 25);
+  --color-warning: oklch(75% 0.15 80);
+  --color-warning-content: oklch(20% 0.02 80);
+  --color-info: oklch(65% 0.12 220);
+  --color-info-content: oklch(98% 0.01 220);
+
+  --radius-box: 1rem;
+  --radius-field: 0.5rem;
+  --radius-selector: 0.5rem;
+}
